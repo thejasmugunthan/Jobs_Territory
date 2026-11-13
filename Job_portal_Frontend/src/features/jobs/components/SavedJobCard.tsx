@@ -6,7 +6,7 @@ import {
   MapPin,
   Briefcase,
   AlertCircle,
-  Coins,
+  IndianRupee,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -48,12 +48,18 @@ export function SavedJobCard({ savedJob, onRemoved }: SavedJobCardProps) {
     currency?: string | null;
   }) => {
     if (salary.minimum == null && salary.maximum == null) return "Salary not disclosed";
-    const curr = salary.currency || "";
-    const min = salary.minimum != null ? Number(salary.minimum).toLocaleString() : "";
-    const max = salary.maximum != null ? Number(salary.maximum).toLocaleString() : "";
-    if (min && max) return `${curr} ${min} – ${max}`;
-    if (min) return `From ${curr} ${min}`;
-    return `Up to ${curr} ${max}`;
+    const c = salary.currency && salary.currency.toUpperCase() !== "USD" ? salary.currency : "₹";
+    const toFormatted = (val: number) => {
+      if (val >= 100000) {
+        return `${c}${(val / 100000).toFixed(1).replace(/\.0$/, "")}L`;
+      }
+      return `${c}${val.toLocaleString("en-IN")}`;
+    };
+    if (salary.minimum != null && salary.maximum != null) {
+      return `${toFormatted(salary.minimum)} – ${toFormatted(salary.maximum)}`;
+    }
+    if (salary.minimum != null) return `From ${toFormatted(salary.minimum)}`;
+    return `Up to ${toFormatted(salary.maximum!)}`;
   };
 
   const getCompanyInitial = (name: string) => {
@@ -146,7 +152,7 @@ export function SavedJobCard({ savedJob, onRemoved }: SavedJobCardProps) {
           )}
 
           <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-            <Coins size={11} />
+            <IndianRupee size={11} />
             <span>{formatSalary(job.salary)}</span>
           </span>
         </div>

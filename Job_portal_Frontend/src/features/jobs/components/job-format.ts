@@ -20,7 +20,15 @@ export function formatPostedDate(value: string | null): string {
   if (days < 30) return `${days} days ago`;
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
-export function formatCurrency(value: number, currency: string): string {
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
-  catch { return `${currency} ${new Intl.NumberFormat().format(value)}`; }
+export function formatCurrency(value: number, currency: string = "INR"): string {
+  try {
+    const cur = !currency || currency.toUpperCase() === "USD" ? "INR" : currency;
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: cur,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `₹${new Intl.NumberFormat("en-IN").format(value)}`;
+  }
 }

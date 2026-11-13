@@ -50,10 +50,21 @@ export function RecommendedJobCard({ job, isSaved = false }: RecommendedJobCardP
     }
   };
 
-  const formattedSalary =
-    job.minimum_salary && job.maximum_salary
-      ? `$${(job.minimum_salary / 1000).toFixed(0)}k - $${(job.maximum_salary / 1000).toFixed(0)}k`
-      : null;
+  const formatSalary = (min?: number | null, max?: number | null, curr?: string | null) => {
+    if (!min && !max) return null;
+    const c = curr && curr.toUpperCase() !== "USD" ? curr : "₹";
+    const toFormatted = (val: number) => {
+      if (val >= 100000) {
+        return `${c}${(val / 100000).toFixed(1).replace(/\.0$/, "")}L`;
+      }
+      return `${c}${val.toLocaleString("en-IN")}`;
+    };
+    if (min && max) return `${toFormatted(min)} – ${toFormatted(max)}`;
+    if (min) return `From ${toFormatted(min)}`;
+    return `Up to ${toFormatted(max!)}`;
+  };
+
+  const formattedSalary = formatSalary(job.minimum_salary, job.maximum_salary, job.currency);
 
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-purple-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">

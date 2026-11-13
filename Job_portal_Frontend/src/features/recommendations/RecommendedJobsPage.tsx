@@ -3,7 +3,7 @@ import {
   Sparkles,
   MapPin,
   Briefcase,
-  Coins,
+  IndianRupee,
   CheckCircle2,
   AlertCircle,
   ArrowRight,
@@ -84,10 +84,16 @@ export default function RecommendedJobsPage() {
 
   const formatSalary = (min: number | null, max: number | null, curr: string | null) => {
     if (min == null && max == null) return "Salary not disclosed";
-    const c = curr || "";
-    if (min != null && max != null) return `${c} ${min.toLocaleString()} – ${max.toLocaleString()}`;
-    if (min != null) return `From ${c} ${min.toLocaleString()}`;
-    return `Up to ${c} ${max?.toLocaleString()}`;
+    const c = curr && curr.toUpperCase() !== "USD" ? curr : "₹";
+    const toFormatted = (val: number) => {
+      if (val >= 100000) {
+        return `${c}${(val / 100000).toFixed(1).replace(/\.0$/, "")}L`;
+      }
+      return `${c}${val.toLocaleString("en-IN")}`;
+    };
+    if (min != null && max != null) return `${toFormatted(min)} – ${toFormatted(max)}`;
+    if (min != null) return `From ${toFormatted(min)}`;
+    return `Up to ${toFormatted(max!)}`;
   };
 
   const getCompanyInitial = (name: string) => {
@@ -251,7 +257,7 @@ export default function RecommendedJobsPage() {
                       )}
 
                       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                        <Coins size={11} />
+                        <IndianRupee size={11} />
                         <span>
                           {formatSalary(job.minimum_salary, job.maximum_salary, job.currency)}
                         </span>
@@ -302,20 +308,28 @@ export default function RecommendedJobsPage() {
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <ApplyNowButton jobId={job.job_id} />
-                      <SaveJobButton jobId={job.job_id} title={job.title} />
+                  <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800 space-y-2.5 mt-auto">
+                    <div className="flex items-center gap-2">
+                      <ApplyNowButton jobId={job.job_id} size="sm" className="flex-1" />
+                      <SaveJobButton jobId={job.job_id} title={job.title} size="sm" />
                     </div>
 
-                    <Link
-                      to={`/jobs/${job.job_id}/match`}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6C3BEB] hover:text-[#5426C9] dark:text-purple-400"
-                      title="View full match breakdown"
-                    >
-                      <span>Analysis</span>
-                      <ArrowUpRight size={13} />
-                    </Link>
+                    <div className="flex items-center justify-between text-xs px-0.5 pt-0.5">
+                      <Link
+                        to={`/jobs/${job.job_id}`}
+                        className="font-medium text-slate-500 hover:text-[#6C3BEB] dark:text-slate-400 dark:hover:text-purple-300 transition-colors"
+                      >
+                        View Details
+                      </Link>
+                      <Link
+                        to={`/jobs/${job.job_id}/match`}
+                        className="inline-flex items-center gap-1 font-bold text-[#6C3BEB] hover:text-[#5426C9] dark:text-purple-400 hover:underline transition-colors"
+                        title="View full AI match breakdown"
+                      >
+                        <span>Match Analysis</span>
+                        <ArrowUpRight size={13} />
+                      </Link>
+                    </div>
                   </div>
                 </article>
               );

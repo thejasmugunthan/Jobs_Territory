@@ -41,12 +41,18 @@ const formatSalary = (job: JobDetails): string => {
   if (job.salary.minimum == null && job.salary.maximum == null) {
     return "Not disclosed";
   }
-  const curr = job.salary.currency || "";
-  const min = job.salary.minimum != null ? Number(job.salary.minimum).toLocaleString() : "";
-  const max = job.salary.maximum != null ? Number(job.salary.maximum).toLocaleString() : "";
-  if (min && max) return `${curr} ${min} – ${max}`;
-  if (min) return `From ${curr} ${min}`;
-  return `Up to ${curr} ${max}`;
+  const c = job.salary.currency && job.salary.currency.toUpperCase() !== "USD" ? job.salary.currency : "₹";
+  const toFormatted = (val: number) => {
+    if (val >= 100000) {
+      return `${c}${(val / 100000).toFixed(1).replace(/\.0$/, "")}L`;
+    }
+    return `${c}${val.toLocaleString("en-IN")}`;
+  };
+  if (job.salary.minimum != null && job.salary.maximum != null) {
+    return `${toFormatted(job.salary.minimum)} – ${toFormatted(job.salary.maximum)}`;
+  }
+  if (job.salary.minimum != null) return `From ${toFormatted(job.salary.minimum)}`;
+  return `Up to ${toFormatted(job.salary.maximum!)}`;
 };
 
 const formatExperience = (job: JobDetails): string => {
