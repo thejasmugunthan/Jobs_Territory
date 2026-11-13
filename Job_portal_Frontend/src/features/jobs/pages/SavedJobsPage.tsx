@@ -1,0 +1,10 @@
+import { useState } from "react";
+import { Bookmark, BriefcaseBusiness, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { EmptyState } from "../../../components/common/EmptyState";
+import { JobPagination } from "../components/JobPagination";
+import { SavedJobCard } from "../components/SavedJobCard";
+import { useSavedJobs } from "../hooks/useSavedJobs";
+export default function SavedJobsPage(){const [page,setPage]=useState(1);const [sort,setSort]=useState("latest");const {data,loading,error,retry}=useSavedJobs(page,sort);
+ return <div className="content-stack saved-jobs-page"><div className="page-intro"><span className="eyebrow">KEEP GOOD OPTIONS CLOSE</span><h2>Saved jobs</h2><p>Return to roles you want to explore when the time is right.</p></div><section className="saved-jobs-panel"><header className="saved-jobs-heading"><div><h3><Bookmark size={17}/> Your saved roles</h3><p>{loading?"Loading saved jobs…":`${data?.pagination.total_items??0} saved jobs`}</p></div><label className="applications-sort"><span>Sort</span><select aria-label="Sort saved jobs" value={sort} onChange={event=>{setSort(event.target.value);setPage(1);}}><option value="latest">Recently saved</option><option value="oldest">Oldest saved</option></select></label></header>{loading?<div className="saved-job-grid">{[1,2,3].map(i=><div className="application-card-skeleton" key={i}/>)}</div>:error?<EmptyState icon={<Search size={21}/>} title="Saved jobs could not be loaded" description={error} action={<button className="button button-primary" onClick={retry}>Try again</button>}/>:data?.items.length?<><div className="saved-job-grid">{data.items.map(item=><SavedJobCard key={item.id} savedJob={item} onRemoved={retry}/>)}</div><JobPagination pagination={data.pagination} onPage={setPage}/></>:<EmptyState icon={<BriefcaseBusiness size={21}/>} title="No saved jobs yet" description="Save a job from search results or its details page to keep it here." action={<Link to="/jobs" className="button button-primary">Explore jobs</Link>}/>}</section></div>;
+}

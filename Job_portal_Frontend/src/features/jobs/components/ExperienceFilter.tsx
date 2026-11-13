@@ -1,0 +1,6 @@
+const ranges = [{ label: "Any experience", min: "", max: "" }, { label: "Fresher", min: "0", max: "0" }, { label: "0–2 years", min: "0", max: "2" }, { label: "2–5 years", min: "2", max: "5" }, { label: "5–8 years", min: "5", max: "8" }, { label: "8+ years", min: "8", max: "" }];
+export function ExperienceFilter({ params, onPatch }: { params: URLSearchParams; onPatch: (values: Record<string, string | undefined>) => void }) {
+  const min = params.get("min_experience") ?? ""; const max = params.get("max_experience") ?? "";
+  const selected = ranges.find((range) => range.min === min && range.max === max)?.label ?? "Custom range";
+  return <div className="job-filter-section"><h3>Experience</h3><label className="job-select-label"><span className="visually-hidden">Experience range</span><select className="field-input" value={selected} onChange={(event) => { const value = ranges.find((range) => range.label === event.target.value); if (value) onPatch({ min_experience: value.min || undefined, max_experience: value.max || undefined }); }}><option disabled>Custom range</option>{ranges.map((range) => <option key={range.label} value={range.label}>{range.label}</option>)}</select></label></div>;
+}
