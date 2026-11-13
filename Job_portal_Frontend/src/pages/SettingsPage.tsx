@@ -52,9 +52,11 @@ export default function SettingsPage() {
 
   // Modal / Confirm state for destructive actions
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const userEmail = user?.email;
 
   // Load account preferences & visibility settings
   useEffect(() => {
+    if (!userEmail) return;
     let active = true;
 
     api
@@ -82,7 +84,7 @@ export default function SettingsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [userEmail]);
 
   // Update Notification Preferences
   const handleToggleEmailAlerts = async (nextValue: boolean) => {

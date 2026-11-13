@@ -64,7 +64,7 @@ export function InterviewSchedule({ interviews, loading = false }: InterviewSche
           </p>
         </div>
         <Link
-          to="/applications"
+          to="/interviews"
           className="inline-flex items-center gap-1 text-xs font-semibold text-[#6C3BEB] hover:text-[#5426C9] dark:text-purple-400"
         >
           See All
@@ -141,3 +141,4 @@ export function InterviewSchedule({ interviews, loading = false }: InterviewSche
     </div>
   );
 }
+

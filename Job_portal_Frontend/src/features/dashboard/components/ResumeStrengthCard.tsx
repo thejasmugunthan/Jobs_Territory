@@ -105,3 +105,4 @@ export function ResumeStrengthCard({ data, loading = false }: ResumeStrengthCard
     </div>
   );
 }
+

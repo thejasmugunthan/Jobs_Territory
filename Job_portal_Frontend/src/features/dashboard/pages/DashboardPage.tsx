@@ -7,7 +7,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { api, getApiErrorMessage } from "../../../services/api";
@@ -69,6 +69,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const outletCtx = useOutletContext<{ onMenu?: () => void } | null>();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -161,7 +162,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-7 pb-10">
       {/* 1. Top Header */}
-      <DashboardHeader userName={candidateName} />
+      <DashboardHeader userName={candidateName} onMenu={outletCtx?.onMenu} />
 
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">

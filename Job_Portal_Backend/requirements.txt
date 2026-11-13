@@ -1,51 +1,24 @@
-# ==============================
 # Core Backend Framework
-# ==============================
 fastapi>=0.115,<1
 uvicorn[standard]
 
-# ==============================
 # Database & ORM
-# ==============================
 sqlalchemy>=2.0,<3
 alembic>=1.13,<2
 psycopg2-binary
 
-# ==============================
 # Authentication & Security
-# ==============================
 pwdlib[argon2]>=0.2,<1
 PyJWT>=2.8,<3
 python-multipart
-PyMuPDF>=1.24,<2
 email-validator
 
-# ==============================
+# Resume Processing
+PyMuPDF>=1.24,<2
+
 # Environment Configuration
-# ==============================
 pydantic-settings>=2.2,<3
 python-dotenv
 
-# ==============================
 # Email Services
-# ==============================
 aiosmtplib
-
-# ==============================
-# Testing
-# ==============================
-pytest
-pytest-asyncio
-httpx
-
-# ==============================
-# Code Quality
-# ==============================
-ruff
-black
-mypy
-
-# ==============================
-# Production Server
-# ==============================
-gunicorn

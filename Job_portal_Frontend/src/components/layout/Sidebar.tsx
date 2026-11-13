@@ -216,8 +216,10 @@ export function TopNavbar({
 }) {
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
+  const userEmail = user?.email;
 
   useEffect(() => {
+    if (!userEmail) return;
     let active = true;
     const load = () =>
       api
@@ -232,7 +234,7 @@ export function TopNavbar({
       window.clearInterval(timer);
       window.removeEventListener("jobs-notifications-updated", load);
     };
-  }, []);
+  }, [userEmail]);
 
   return (
     <header className="topbar">

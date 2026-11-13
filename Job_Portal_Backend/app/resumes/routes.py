@@ -2,8 +2,10 @@ import hashlib
 import logging
 import os
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -281,3 +283,17 @@ def delete_resume(
     db.delete(resume)
     db.commit()
     SupabaseStorage(get_settings()).delete(path)
+
+
+@router.get("/raw/{file_path:path}")
+@router.head("/raw/{file_path:path}")
+def download_raw_resume(file_path: str):
+    storage_root = Path("uploads").resolve()
+    target_file = (Path("uploads") / file_path).resolve()
+    if not str(target_file).startswith(str(storage_root)) or not target_file.is_file():
+        raise HTTPException(404, "Resume file not found")
+    return FileResponse(
+        path=target_file,
+        media_type="application/pdf",
+        filename=target_file.name,
+    )

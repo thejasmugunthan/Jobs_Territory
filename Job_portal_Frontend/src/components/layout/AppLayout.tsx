@@ -23,6 +23,7 @@ export function AppLayout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const isDashboard = location.pathname === "/dashboard";
 
   return (
     <div className={`app-shell ${collapsed ? "app-shell-collapsed" : ""}`}>
@@ -33,19 +34,21 @@ export function AppLayout() {
         onToggleCollapse={() => setCollapsed((value) => !value)}
       />
       <div className="app-main">
-        <TopNavbar
-          title={
-            titles[location.pathname] ??
-            (location.pathname.startsWith("/jobs/")
-              ? "Job details"
-              : location.pathname.startsWith("/applications/")
-              ? "Application details"
-              : "Jobs Territory")
-          }
-          onMenu={() => setMobileOpen(true)}
-        />
-        <main className="page-content">
-          <Outlet />
+        {!isDashboard && (
+          <TopNavbar
+            title={
+              titles[location.pathname] ??
+              (location.pathname.startsWith("/jobs/")
+                ? "Job details"
+                : location.pathname.startsWith("/applications/")
+                ? "Application details"
+                : "Jobs Territory")
+            }
+            onMenu={() => setMobileOpen(true)}
+          />
+        )}
+        <main className={`page-content ${isDashboard ? "dashboard-page-content" : ""}`}>
+          <Outlet context={{ onMenu: () => setMobileOpen(true) }} />
         </main>
       </div>
     </div>

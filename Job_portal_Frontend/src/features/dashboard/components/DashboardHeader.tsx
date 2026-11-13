@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, FileUp, Sparkles } from "lucide-react";
+import { Bell, FileUp, Menu, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GlobalSearch } from "../../../components/common/GlobalSearch";
 import { ThemeToggle } from "../../../components/common/ThemeToggle";
@@ -7,9 +7,10 @@ import { api } from "../../../services/api";
 
 interface DashboardHeaderProps {
   userName: string;
+  onMenu?: () => void;
 }
 
-export function DashboardHeader({ userName }: DashboardHeaderProps) {
+export function DashboardHeader({ userName, onMenu }: DashboardHeaderProps) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -39,17 +40,29 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200/80 dark:border-slate-800">
       {/* Welcome Section */}
-      <div>
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6C3BEB] dark:text-purple-400 mb-1">
-          <Sparkles size={14} />
-          <span>Candidate Workspace</span>
+      <div className="flex items-center gap-3">
+        {onMenu && (
+          <button
+            type="button"
+            className="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-[#6C3BEB] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+            onClick={onMenu}
+            aria-label="Open navigation menu"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <div>
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6C3BEB] dark:text-purple-400 mb-1">
+            <Sparkles size={14} />
+            <span>Candidate Workspace</span>
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            {`Welcome back, ${firstName}.`} <span aria-hidden="true">👋</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Here is what is happening with your job applications and recruiter views today.
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          {`Welcome back, ${firstName}.`} <span aria-hidden="true">👋</span>
-        </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Here is what is happening with your job applications and recruiter views today.
-        </p>
       </div>
 
       {/* Actions: Search, Theme, Notifications, Post Resume */}
