@@ -44,7 +44,12 @@ export interface ApplicationAnalytics {
   definitions?: Record<string, string>;
 }
 
+/**
+ * analyticsService:
+ * API endpoints for fetching candidate application metrics, pipeline statistics, and activity charts.
+ */
 export const analyticsService = {
+  /** applications: Fetches aggregated application metrics, status distribution, and trends */
   async applications(params: URLSearchParams, signal?: AbortSignal): Promise<ApplicationAnalytics> {
     const { data } = await api.get<ApplicationAnalytics>(`/api/v1/analytics/applications?${params.toString()}`, {
       signal,
