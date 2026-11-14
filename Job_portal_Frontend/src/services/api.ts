@@ -2,7 +2,9 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import type { TokenResponse } from "../features/auth/types";
 import { tokenStore } from "../features/auth/tokenStore";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000";
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ||
+  (import.meta.env.PROD ? "https://jobs-territory-1.onrender.com" : "http://localhost:8000");
 
 export const api = axios.create({
   baseURL,
