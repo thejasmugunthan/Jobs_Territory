@@ -76,7 +76,13 @@ def login(
     settings: Settings = Depends(get_settings),
 ) -> dict:
     enforce_login_rate_limit(request)
-    user = find_user_by_email(db, str(payload.email))
+    email_str = str(payload.email).strip().lower()
+    user = find_user_by_email(db, email_str)
+    if user is None and "@" in email_str:
+        if not email_str.endswith(".com"):
+            user = find_user_by_email(db, f"{email_str}.com")
+        elif email_str.endswith(".com"):
+            user = find_user_by_email(db, email_str[:-4])
     if user is None:
         # Perform a hash check to reduce timing-based account discovery.
         from app.core.security import password_hash

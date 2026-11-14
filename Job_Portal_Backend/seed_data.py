@@ -10,9 +10,18 @@ from app.core.security import hash_password
 def seed():
     db = SessionLocal()
     try:
-        # Check if already seeded
+        # Ensure demo@123 account with complete fields is seeded
+        if not db.query(User).filter_by(email="demo@123").first():
+            try:
+                from seed_demo_account import seed_demo
+                seed_demo("demo@123")
+                seed_demo("demo@123.com")
+            except Exception as e:
+                print("Could not auto-seed demo@123:", e)
+
+        # Check if base jobs are already seeded
         if db.query(User).filter_by(email="candidate@jobsterritory.com").first():
-            print("Database already contains demo user.")
+            print("Database already contains base demo user.")
             return
 
         print("Seeding demo data for Jobs Territory...")

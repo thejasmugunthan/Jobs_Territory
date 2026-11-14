@@ -9,7 +9,10 @@ export const passwordSchema = z
   .refine((value) => /\d/.test(value), "Add a number");
 
 export const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
+  email: z
+    .string()
+    .min(1, "Enter your email or username")
+    .refine((val) => val.includes("@") || val.length >= 3, "Enter a valid email or username"),
   password: z.string().min(1, "Password is required").max(128),
 });
 
