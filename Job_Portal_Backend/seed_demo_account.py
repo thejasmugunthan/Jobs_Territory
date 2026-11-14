@@ -7,7 +7,7 @@ from app.models import (
     User, CandidateProfile, Company, Job, Skill, JobSkill, CandidateSkill,
     Application, ApplicationStatusHistory, CandidatePreferences,
     WorkExperience, Education, Project, Certification,
-    SavedJob, Resume, ResumeAnalysis, JobAlert, Notification, SupportRequest
+    SavedJob, RecentlyViewedJob, Resume, ResumeAnalysis, JobAlert, Notification, SupportRequest
 )
 from app.core.security import hash_password
 
@@ -18,7 +18,6 @@ def seed_demo(email_addr):
 
         existing = db.query(User).filter_by(email=email_addr).first()
         if existing:
-            print(f"User {email_addr} already exists. Updating password and data...")
             existing.password_hash = hash_password("demo@123")
             existing.is_active = True
             candidate_user = existing
@@ -36,11 +35,10 @@ def seed_demo(email_addr):
             )
             db.add(candidate_user)
             db.flush()
-            print(f"Created user {email_addr} (ID: {candidate_user.id})")
 
         uid = candidate_user.id
 
-        # 1. Profile
+        # 1. Profile (Complete fields)
         prof = db.query(CandidateProfile).filter_by(user_id=uid).first()
         if not prof:
             prof = CandidateProfile(
@@ -75,16 +73,22 @@ def seed_demo(email_addr):
             prof.city = "Bengaluru"
             prof.state = "Karnataka"
             prof.country = "India"
+            prof.linkedin_url = "https://linkedin.com/in/alex-sharma-tech"
+            prof.github_url = "https://github.com/alex-sharma-dev"
+            prof.portfolio_url = "https://alexsharma.dev"
             prof.total_experience = 6
             prof.current_employment_status = "employed"
+            prof.recruiter_visible = True
+            prof.resume_visible = True
+            prof.contact_visible = True
 
-        # 2. Preferences
+        # 2. Preferences (in INR)
         pref = db.query(CandidatePreferences).filter_by(candidate_id=uid).first()
         if not pref:
             pref = CandidatePreferences(
                 id=uuid.uuid4(),
                 candidate_id=uid,
-                preferred_job_titles=["Senior Full Stack Engineer", "Lead Frontend Architect", "Python Backend Developer", "AI Platform Engineer"],
+                preferred_job_titles=["Senior Full Stack Engineer", "Lead Frontend Architect", "Python Backend Developer", "AI Platform Engineer", "Cloud Architect"],
                 preferred_locations=["Bengaluru, Karnataka", "Remote", "Hyderabad, Telangana", "Mumbai, Maharashtra"],
                 preferred_work_modes=["remote", "hybrid"],
                 preferred_employment_types=["full_time"],
@@ -98,7 +102,7 @@ def seed_demo(email_addr):
             )
             db.add(pref)
         else:
-            pref.preferred_job_titles = ["Senior Full Stack Engineer", "Lead Frontend Architect", "Python Backend Developer", "AI Platform Engineer"]
+            pref.preferred_job_titles = ["Senior Full Stack Engineer", "Lead Frontend Architect", "Python Backend Developer", "AI Platform Engineer", "Cloud Architect"]
             pref.preferred_locations = ["Bengaluru, Karnataka", "Remote", "Hyderabad, Telangana", "Mumbai, Maharashtra"]
             pref.preferred_work_modes = ["remote", "hybrid"]
             pref.preferred_employment_types = ["full_time"]
@@ -106,10 +110,11 @@ def seed_demo(email_addr):
             pref.maximum_expected_salary = 3200000
             pref.salary_currency = "INR"
             pref.preferred_experience_level = "senior"
+            pref.preferred_industries = ["Information Technology", "Fintech", "Artificial Intelligence & Analytics"]
             pref.willing_to_relocate = True
             pref.available_to_join = "Immediate (15 days notice)"
 
-        # 3. Work Experience
+        # 3. Work Experience (3 records)
         db.query(WorkExperience).filter_by(candidate_id=uid).delete()
         exp1 = WorkExperience(
             id=uuid.uuid4(),
@@ -135,7 +140,7 @@ def seed_demo(email_addr):
             job_title="Full Stack Engineer",
             employment_type="full-time",
             location="Hyderabad, Telangana",
-            start_date=date(2020, 6, 1),
+            start_date=date(2021, 1, 10),
             end_date=date(2022, 12, 31),
             currently_working=False,
             description="Engineered scalable cloud services and interactive web portals.",
@@ -145,28 +150,56 @@ def seed_demo(email_addr):
                 "Containerized microservices using Docker and automated CI/CD GitHub Actions workflows"
             ]
         )
-        db.add_all([exp1, exp2])
+        exp3 = WorkExperience(
+            id=uuid.uuid4(),
+            candidate_id=uid,
+            company_name="RazorPay Technologies",
+            job_title="Junior Software Engineer",
+            employment_type="full-time",
+            location="Bengaluru, Karnataka",
+            start_date=date(2019, 7, 1),
+            end_date=date(2020, 12, 20),
+            currently_working=False,
+            description="Contributed to core payment integration APIs and checkout SDKs.",
+            responsibilities=[
+                "Maintained RESTful checkout microservices with 99.99% uptime",
+                "Implemented secure webhook verification and retry policies in Python"
+            ]
+        )
+        db.add_all([exp1, exp2, exp3])
 
-        # 4. Education
+        # 4. Education (2 records)
         db.query(Education).filter_by(candidate_id=uid).delete()
-        edu = Education(
+        edu1 = Education(
             id=uuid.uuid4(),
             candidate_id=uid,
             institution_name="National Institute of Technology (NIT) Karnataka",
             degree="Bachelor of Technology (B.Tech)",
             field_of_study="Computer Science & Engineering",
-            start_date=date(2016, 8, 1),
-            end_date=date(2020, 5, 30),
+            start_date=date(2015, 8, 1),
+            end_date=date(2019, 5, 30),
             is_currently_studying=False,
             grade="8.9 / 10 CGPA",
             description="Graduated with Distinction. Coursework in Distributed Systems, Algorithms, Cloud Computing, and DBMS."
         )
-        db.add(edu)
+        edu2 = Education(
+            id=uuid.uuid4(),
+            candidate_id=uid,
+            institution_name="Indian Institute of Science (IISc)",
+            degree="Post-Graduate Certification",
+            field_of_study="Cloud Architecture & Artificial Intelligence",
+            start_date=date(2021, 6, 1),
+            end_date=date(2022, 3, 15),
+            is_currently_studying=False,
+            grade="A+ Grade",
+            description="Advanced studies in scalable machine learning deployments and distributed systems."
+        )
+        db.add_all([edu1, edu2])
 
-        # 5. Skills
+        # 5. Skills (12 skills)
         all_skills = db.query(Skill).all()
         skill_map = {s.name: s for s in all_skills}
-        required_skills = ["React", "TypeScript", "Python", "FastAPI", "PostgreSQL", "Docker", "Tailwind CSS", "Redis", "AWS"]
+        required_skills = ["React", "TypeScript", "Python", "FastAPI", "PostgreSQL", "Docker", "Tailwind CSS", "Redis", "AWS", "Kubernetes", "GraphQL", "Next.js"]
         for sname in required_skills:
             if sname not in skill_map:
                 sk = Skill(id=uuid.uuid4(), name=sname, category="Engineering")
@@ -176,7 +209,7 @@ def seed_demo(email_addr):
 
         db.query(CandidateSkill).filter_by(candidate_id=uid).delete()
         for idx, sname in enumerate(required_skills):
-            level = "expert" if idx < 4 else "advanced"
+            level = "expert" if idx < 5 else "advanced"
             cs = CandidateSkill(
                 id=uuid.uuid4(),
                 candidate_id=uid,
@@ -185,7 +218,7 @@ def seed_demo(email_addr):
             )
             db.add(cs)
 
-        # 6. Projects
+        # 6. Projects (3 records)
         db.query(Project).filter_by(candidate_id=uid).delete()
         proj1 = Project(
             id=uuid.uuid4(),
@@ -203,17 +236,29 @@ def seed_demo(email_addr):
             id=uuid.uuid4(),
             candidate_id=uid,
             project_name="High-Concurrency Real-time Settlement Ledger",
-            description="Fault-tolerant financial ledger handling real-time debit/credit reconciliation with strict ACID transactional guarantees.",
-            technologies_used=["Python", "FastAPI", "Redis", "Docker", "PostgreSQL"],
-            project_url="https://github.com/alex-sharma-dev/settlement-ledger",
+            description="Financial transaction engine supporting idempotent ledger writes, optimistic locking, and zero-loss reconciliations.",
+            technologies_used=["Python", "FastAPI", "Redis", "PostgreSQL", "Docker"],
+            project_url="https://ledger.demo.jobsterritory.com",
             repository_url="https://github.com/alex-sharma-dev/settlement-ledger",
-            start_date=date(2023, 3, 1),
+            start_date=date(2022, 3, 1),
+            end_date=date(2023, 2, 28),
+            is_ongoing=False
+        )
+        proj3 = Project(
+            id=uuid.uuid4(),
+            candidate_id=uid,
+            project_name="AI Resume Parser & Skills Matcher",
+            description="Deep NLP extraction pipeline for PDF resumes that categorizes technical proficiencies and predicts hiring match score.",
+            technologies_used=["Python", "spaCy", "FastAPI", "Docker", "PyMuPDF"],
+            project_url="https://ai-resume.jobsterritory.com",
+            repository_url="https://github.com/alex-sharma-dev/resume-nlp-matcher",
+            start_date=date(2023, 4, 1),
             end_date=date(2023, 11, 30),
             is_ongoing=False
         )
-        db.add_all([proj1, proj2])
+        db.add_all([proj1, proj2, proj3])
 
-        # 7. Certifications
+        # 7. Certifications (3 records)
         db.query(Certification).filter_by(candidate_id=uid).delete()
         cert1 = Certification(
             id=uuid.uuid4(),
@@ -231,13 +276,24 @@ def seed_demo(email_addr):
             candidate_id=uid,
             certification_name="Professional Scrum Master I (PSM I)",
             issuing_organization="Scrum.org",
-            issue_date=date(2022, 9, 20),
+            issue_date=date(2022, 8, 20),
             expiration_date=None,
             credential_id="PSM-991823",
-            credential_url="https://scrum.org/certificates",
+            credential_url="https://scrum.org/certificates/991823",
             does_not_expire=True
         )
-        db.add_all([cert1, cert2])
+        cert3 = Certification(
+            id=uuid.uuid4(),
+            candidate_id=uid,
+            certification_name="Certified Kubernetes Administrator (CKA)",
+            issuing_organization="Cloud Native Computing Foundation (CNCF)",
+            issue_date=date(2023, 10, 5),
+            expiration_date=date(2026, 10, 5),
+            credential_id="CKA-294812",
+            credential_url="https://www.cncf.io/certification/cka/",
+            does_not_expire=False
+        )
+        db.add_all([cert1, cert2, cert3])
 
         # 8. Resume & Analysis
         db.query(ResumeAnalysis).filter_by(candidate_id=uid).delete()
@@ -249,7 +305,7 @@ def seed_demo(email_addr):
             storage_path=f"resumes/{uid}/Alex_Sharma_Resume.pdf",
             file_size=245800,
             mime_type="application/pdf",
-            sha256=hashlib.sha256(b"dummy_resume_content_alex_sharma").hexdigest(),
+            sha256=hashlib.sha256(b"dummy_resume_content_alex_sharma_full").hexdigest(),
             processing_status="analyzed",
             is_current=True,
             uploaded_at=now - timedelta(days=10)
@@ -273,11 +329,11 @@ def seed_demo(email_addr):
                 {"name": "AWS", "category": "Cloud", "confidence": 0.85},
             ],
             education=[
-                {"institution": "National Institute of Technology (NIT) Karnataka", "degree": "Bachelor of Technology (B.Tech)", "year": "2020"}
+                {"institution": "National Institute of Technology (NIT) Karnataka", "degree": "Bachelor of Technology (B.Tech)", "year": "2019"}
             ],
             experience=[
                 {"title": "Senior Software Engineer", "company": "Jobs Territory Labs", "duration": "2023 - Present"},
-                {"title": "Full Stack Engineer", "company": "CloudScale Systems", "duration": "2020 - 2022"}
+                {"title": "Full Stack Engineer", "company": "CloudScale Systems", "duration": "2021 - 2022"}
             ],
             projects=[
                 {"name": "Smart Candidate Career Portal & Analytics", "role": "Lead Architect"},
@@ -310,7 +366,7 @@ def seed_demo(email_addr):
         )).delete(synchronize_session=False)
         db.query(Application).filter_by(candidate_id=uid).delete()
 
-        status_cycle = ["shortlisted", "interview_scheduled", "selected", "under_review", "applied"]
+        status_cycle = ["selected", "interview_scheduled", "shortlisted", "under_review", "applied"]
         for idx, j in enumerate(jobs[:5]):
             st = status_cycle[idx % len(status_cycle)]
             app_time = now - timedelta(days=(idx + 1) * 3)
@@ -325,9 +381,9 @@ def seed_demo(email_addr):
                 resume_content_type="application/pdf",
                 resume_size_bytes=245800,
                 applied_at=app_time,
-                last_status_changed_at=app_time + timedelta(hours=36),
+                last_status_changed_at=now - timedelta(hours=6),
                 created_at=app_time,
-                updated_at=app_time + timedelta(hours=36)
+                updated_at=now - timedelta(hours=6)
             )
             db.add(app)
             db.flush()
@@ -342,9 +398,9 @@ def seed_demo(email_addr):
             )
             db.add(hist)
 
-        # 10. Saved Jobs
+        # 10. Saved Jobs (3 bookmarks)
         db.query(SavedJob).filter_by(candidate_id=uid).delete()
-        for j in jobs[2:5]:
+        for j in jobs[1:4]:
             db.add(SavedJob(
                 id=uuid.uuid4(),
                 candidate_id=uid,
@@ -352,7 +408,18 @@ def seed_demo(email_addr):
                 saved_at=now - timedelta(days=2)
             ))
 
-        # 11. Job Alert
+        # 11. Recently Viewed Jobs (4 records)
+        db.query(RecentlyViewedJob).filter_by(candidate_id=uid).delete()
+        for idx, j in enumerate(jobs[:4]):
+            db.add(RecentlyViewedJob(
+                id=uuid.uuid4(),
+                candidate_id=uid,
+                job_id=j.id,
+                viewed_at=now - timedelta(hours=(idx + 1) * 4),
+                view_count=idx + 1
+            ))
+
+        # 12. Job Alert
         db.query(JobAlert).filter_by(candidate_id=uid).delete()
         alert = JobAlert(
             id=uuid.uuid4(),
@@ -373,7 +440,7 @@ def seed_demo(email_addr):
         )
         db.add(alert)
 
-        # 12. Notifications
+        # 13. Notifications (5 items)
         db.query(Notification).filter_by(candidate_id=uid).delete()
         notifs = [
             Notification(
@@ -385,18 +452,18 @@ def seed_demo(email_addr):
                 job_id=jobs[0].id if jobs else None,
                 deduplication_key=f"offer_rec_{uid}_1",
                 is_read=False,
-                created_at=now - timedelta(hours=4)
+                created_at=now - timedelta(hours=2)
             ),
             Notification(
                 id=uuid.uuid4(),
                 candidate_id=uid,
                 notification_type="interview_scheduled",
-                title="Interview Scheduled: Technical Architecture",
+                title="Interview Scheduled: Technical Architecture Round",
                 message="Your video interview with CloudScale Systems is scheduled for Friday at 2:30 PM IST.",
                 job_id=jobs[1].id if len(jobs) > 1 else None,
                 deduplication_key=f"interview_sch_{uid}_2",
                 is_read=False,
-                created_at=now - timedelta(hours=18)
+                created_at=now - timedelta(hours=14)
             ),
             Notification(
                 id=uuid.uuid4(),
@@ -407,7 +474,7 @@ def seed_demo(email_addr):
                 job_id=jobs[2].id if len(jobs) > 2 else None,
                 deduplication_key=f"shortlist_{uid}_3",
                 is_read=True,
-                created_at=now - timedelta(days=2)
+                created_at=now - timedelta(days=1)
             ),
             Notification(
                 id=uuid.uuid4(),
@@ -418,29 +485,27 @@ def seed_demo(email_addr):
                 job_id=None,
                 deduplication_key=f"alert_match_{uid}_4",
                 is_read=True,
+                created_at=now - timedelta(days=2)
+            ),
+            Notification(
+                id=uuid.uuid4(),
+                candidate_id=uid,
+                notification_type="application_status",
+                title="Application Submitted Successfully",
+                message="Your profile and resume were forwarded to FinVantage Capital for Senior Fintech Backend Engineer.",
+                job_id=jobs[3].id if len(jobs) > 3 else None,
+                deduplication_key=f"app_sub_{uid}_5",
+                is_read=True,
                 created_at=now - timedelta(days=3)
             )
         ]
         db.add_all(notifs)
 
-        # 13. Support Request
-        db.query(SupportRequest).filter_by(candidate_id=uid).delete()
-        sr = SupportRequest(
-            id=uuid.uuid4(),
-            candidate_id=uid,
-            subject="Assistance with portfolio link on candidate profile",
-            category="Profile Assistance",
-            description="I updated my portfolio URL and verified that recruiter visibility is active. Can you confirm everything looks optimal?",
-            status="resolved",
-            created_at=now - timedelta(days=5)
-        )
-        db.add(sr)
-
         db.commit()
-        print(f"Successfully seeded ALL fields for {email_addr}!")
+        print(f"Successfully seeded complete candidate data for {email_addr}!")
     except Exception as e:
         db.rollback()
-        print(f"Error seeding user {email_addr}: {e}")
+        print(f"Error seeding {email_addr}: {e}")
         raise
     finally:
         db.close()
