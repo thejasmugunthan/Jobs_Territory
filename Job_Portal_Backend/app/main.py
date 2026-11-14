@@ -39,11 +39,39 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     get_settings().validate_runtime()
+    try:
+        from app.database import Base, engine
+        import app.models  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Database create_all skipped or failed: %s", exc)
+
+    try:
+        from seed_data import seed
+        seed()
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Seed data initialization skipped: %s", exc)
+
     yield
 
 
 app = FastAPI(title="Jobs Territory API", version="1.0.0", lifespan=lifespan)
 app.add_exception_handler(ProfileError, cast(ExceptionHandler, profile_error_handler))
+
+
+@app.get("/", tags=["health"])
+def root():
+    return {
+        "status": "healthy",
+        "service": "Jobs Territory API",
+        "version": "1.0.0",
+        "docs": "/docs",
+    }
+
+
+@app.get("/health", tags=["health"])
+def health():
+    return {"status": "healthy", "service": "Jobs Territory API"}
 
 
 async def database_error_handler(
