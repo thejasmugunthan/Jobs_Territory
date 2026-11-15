@@ -40,11 +40,12 @@ logging.basicConfig(
 async def lifespan(_: FastAPI):
     get_settings().validate_runtime()
     try:
-        from app.database import Base, engine
+        from app.database import Base, engine, ensure_schema_sync
         import app.models  # noqa: F401
         Base.metadata.create_all(bind=engine)
+        ensure_schema_sync(engine)
     except Exception as exc:
-        logging.getLogger(__name__).warning("Database create_all skipped or failed: %s", exc)
+        logging.getLogger(__name__).warning("Database setup / schema sync skipped or failed: %s", exc)
 
     try:
         from seed_data import seed

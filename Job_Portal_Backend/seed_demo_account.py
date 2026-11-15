@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import uuid, sys, hashlib
 sys.path.insert(0, ".")
 from datetime import datetime, timezone, timedelta, date
