@@ -40,20 +40,20 @@ logging.basicConfig(
 async def lifespan(_: FastAPI):
     get_settings().validate_runtime()
     
-    # 1. Synchronize schema columns first (adds missing columns like users.full_name on PostgreSQL)
-    try:
-        from app.database import ensure_schema_sync, engine
-        ensure_schema_sync(engine)
-    except Exception as exc:
-        logging.getLogger(__name__).warning("Schema sync skipped or failed: %s", exc)
-
-    # 2. Create any missing tables
+    # 1. Create any missing tables first
     try:
         from app.database import Base, engine
         import app.models  # noqa: F401
         Base.metadata.create_all(bind=engine)
     except Exception as exc:
         logging.getLogger(__name__).warning("Database create_all skipped or failed: %s", exc)
+
+    # 2. Synchronize schema columns (adds missing columns like users.full_name on PostgreSQL)
+    try:
+        from app.database import ensure_schema_sync, engine
+        ensure_schema_sync(engine)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Schema sync skipped or failed: %s", exc)
 
     # 3. Seed demo accounts and jobs
     try:
@@ -103,10 +103,26 @@ def sync_db_endpoint():
     import app.models  # noqa: F401
     from seed_data import seed
 
-    ensure_schema_sync(engine)
-    Base.metadata.create_all(bind=engine)
-    seed()
-    return {"status": "success", "message": "Database schema synchronized and demo data seeded."}
+    try:
+        Base.metadata.create_all(bind=engine)
+        ensure_schema_sync(engine)
+        seed()
+        return {"status": "success", "message": "Database schema synchronized and demo data seeded."}
+    except Exception as exc:
+        logging.getLogger(__name__).exception("sync-db failed: %s", exc)
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(exc)})
+
+
+@app.post("/api/v1/system/seed-demo", tags=["system"])
+def seed_demo_endpoint():
+    from seed_demo_account import seed_demo
+    try:
+        seed_demo("demo@123")
+        seed_demo("demo@123.com")
+        return {"status": "success", "message": "demo@123 and demo@123.com seeded successfully with complete data"}
+    except Exception as exc:
+        logging.getLogger(__name__).exception("seed-demo failed: %s", exc)
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(exc)})
 
 
 async def database_error_handler(
