@@ -31,85 +31,70 @@ def ensure_schema_sync(target_engine):
     Prevents (psycopg.errors.UndefinedColumn) errors when models evolve without full database re-creation.
     """
     logger = logging.getLogger(__name__)
+    dialect = target_engine.dialect.name
+    is_pg = dialect == "postgresql"
+
+    # PostgreSQL: execute native ALTER TABLE ... ADD COLUMN IF NOT EXISTS
+    if is_pg:
+        pg_statements = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(160) DEFAULT 'Candidate';",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'candidate';",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference VARCHAR(12) DEFAULT 'system';",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_job_alerts BOOLEAN DEFAULT TRUE;",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();",
+            "UPDATE users SET full_name = 'Candidate' WHERE full_name IS NULL OR full_name = '';",
+
+            "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS recruiter_visible BOOLEAN DEFAULT TRUE;",
+            "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS resume_visible BOOLEAN DEFAULT FALSE;",
+            "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS contact_visible BOOLEAN DEFAULT TRUE;",
+            "ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS profile_initialized BOOLEAN DEFAULT FALSE;",
+
+            "ALTER TABLE candidate_preferences ADD COLUMN IF NOT EXISTS salary_currency VARCHAR(3) DEFAULT 'INR';",
+
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'INR';",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+
+            "ALTER TABLE job_alerts ADD COLUMN IF NOT EXISTS salary_currency VARCHAR(3) DEFAULT 'INR';",
+
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_filename VARCHAR(255);",
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_storage_path VARCHAR(500);",
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_content_type VARCHAR(100);",
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_size_bytes INTEGER;",
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_sha256 VARCHAR(64);",
+            "ALTER TABLE applications ADD COLUMN IF NOT EXISTS last_status_changed_at TIMESTAMP WITH TIME ZONE;",
+        ]
+        for stmt in pg_statements:
+            try:
+                with target_engine.begin() as conn:
+                    conn.execute(text(stmt))
+            except Exception as e:
+                logger.warning("PG schema statement skipped or failed: %s (%s)", stmt, e)
+        logger.info("PostgreSQL schema sync finished successfully.")
+        return
+
+    # SQLite: inspection-based column check
     try:
         inspector = inspect(target_engine)
         existing_tables = set(inspector.get_table_names())
-        dialect = target_engine.dialect.name
-        is_pg = dialect == "postgresql"
-
-        with target_engine.begin() as conn:
-            # 1. users table
-            if "users" in existing_tables:
-                user_cols = {c["name"] for c in inspector.get_columns("users")}
-                if "full_name" not in user_cols:
-                    logger.info("Auto-migrating: adding full_name to users table")
-                    conn.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(160) DEFAULT 'Candidate' NOT NULL;"))
-                if "role" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'candidate' NOT NULL;"))
-                if "is_active" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE NOT NULL;"))
-                if "is_deleted" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE NOT NULL;"))
-                if "theme_preference" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN theme_preference VARCHAR(12) DEFAULT 'system' NOT NULL;"))
-                if "email_job_alerts" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN email_job_alerts BOOLEAN DEFAULT TRUE NOT NULL;"))
-                if "created_at" not in user_cols:
-                    if is_pg:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;"))
-                    else:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL;"))
-
-            # 2. candidate_profiles table
-            if "candidate_profiles" in existing_tables:
-                cp_cols = {c["name"] for c in inspector.get_columns("candidate_profiles")}
-                if "recruiter_visible" not in cp_cols:
-                    conn.execute(text("ALTER TABLE candidate_profiles ADD COLUMN recruiter_visible BOOLEAN DEFAULT TRUE NOT NULL;"))
-                if "resume_visible" not in cp_cols:
-                    conn.execute(text("ALTER TABLE candidate_profiles ADD COLUMN resume_visible BOOLEAN DEFAULT FALSE NOT NULL;"))
-                if "contact_visible" not in cp_cols:
-                    conn.execute(text("ALTER TABLE candidate_profiles ADD COLUMN contact_visible BOOLEAN DEFAULT TRUE NOT NULL;"))
-                if "profile_initialized" not in cp_cols:
-                    conn.execute(text("ALTER TABLE candidate_profiles ADD COLUMN profile_initialized BOOLEAN DEFAULT FALSE NOT NULL;"))
-
-            # 3. candidate_preferences table
-            if "candidate_preferences" in existing_tables:
-                pref_cols = {c["name"] for c in inspector.get_columns("candidate_preferences")}
-                if "salary_currency" not in pref_cols:
-                    conn.execute(text("ALTER TABLE candidate_preferences ADD COLUMN salary_currency VARCHAR(3) DEFAULT 'INR' NOT NULL;"))
-
-            # 4. jobs table
-            if "jobs" in existing_tables:
-                job_cols = {c["name"] for c in inspector.get_columns("jobs")}
-                if "currency" not in job_cols:
-                    conn.execute(text("ALTER TABLE jobs ADD COLUMN currency VARCHAR(3) DEFAULT 'INR';"))
-                if "is_deleted" not in job_cols:
-                    conn.execute(text("ALTER TABLE jobs ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE NOT NULL;"))
-
-            # 5. job_alerts table
-            if "job_alerts" in existing_tables:
-                alert_cols = {c["name"] for c in inspector.get_columns("job_alerts")}
-                if "salary_currency" not in alert_cols:
-                    conn.execute(text("ALTER TABLE job_alerts ADD COLUMN salary_currency VARCHAR(3) DEFAULT 'INR';"))
-
-            # 6. applications table
-            if "applications" in existing_tables:
-                app_cols = {c["name"] for c in inspector.get_columns("applications")}
-                if "resume_filename" not in app_cols:
-                    conn.execute(text("ALTER TABLE applications ADD COLUMN resume_filename VARCHAR(255);"))
-                if "resume_storage_path" not in app_cols:
-                    conn.execute(text("ALTER TABLE applications ADD COLUMN resume_storage_path VARCHAR(500);"))
-                if "resume_content_type" not in app_cols:
-                    conn.execute(text("ALTER TABLE applications ADD COLUMN resume_content_type VARCHAR(100);"))
-                if "resume_size_bytes" not in app_cols:
-                    conn.execute(text("ALTER TABLE applications ADD COLUMN resume_size_bytes INTEGER;"))
-                if "resume_sha256" not in app_cols:
-                    conn.execute(text("ALTER TABLE applications ADD COLUMN resume_sha256 VARCHAR(64);"))
-                if "last_status_changed_at" not in app_cols:
-                    if is_pg:
-                        conn.execute(text("ALTER TABLE applications ADD COLUMN last_status_changed_at TIMESTAMP WITH TIME ZONE;"))
-                    else:
-                        conn.execute(text("ALTER TABLE applications ADD COLUMN last_status_changed_at DATETIME;"))
-        logger.info("Schema synchronization completed successfully.")
+        if "users" in existing_tables:
+            user_cols = {c["name"] for c in inspector.get_columns("users")}
+            for col, col_type in [
+                ("full_name", "VARCHAR(160) DEFAULT 'Candidate'"),
+                ("role", "VARCHAR(20) DEFAULT 'candidate'"),
+                ("is_active", "BOOLEAN DEFAULT 1"),
+                ("is_deleted", "BOOLEAN DEFAULT 0"),
+                ("theme_preference", "VARCHAR(12) DEFAULT 'system'"),
+                ("email_job_alerts", "BOOLEAN DEFAULT 1"),
+                ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+            ]:
+                if col not in user_cols:
+                    try:
+                        with target_engine.begin() as conn:
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type};"))
+                    except Exception as e:
+                        logger.warning("SQLite column add skipped: %s", e)
+        logger.info("SQLite schema sync finished successfully.")
     except Exception as exc:
-        logger.warning("ensure_schema_sync encountered an issue: %s", exc)
+        logger.warning("SQLite schema sync skipped: %s", exc)

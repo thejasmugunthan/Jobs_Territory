@@ -39,14 +39,23 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     get_settings().validate_runtime()
+    
+    # 1. Synchronize schema columns first (adds missing columns like users.full_name on PostgreSQL)
     try:
-        from app.database import Base, engine, ensure_schema_sync
-        import app.models  # noqa: F401
-        Base.metadata.create_all(bind=engine)
+        from app.database import ensure_schema_sync, engine
         ensure_schema_sync(engine)
     except Exception as exc:
-        logging.getLogger(__name__).warning("Database setup / schema sync skipped or failed: %s", exc)
+        logging.getLogger(__name__).warning("Schema sync skipped or failed: %s", exc)
 
+    # 2. Create any missing tables
+    try:
+        from app.database import Base, engine
+        import app.models  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Database create_all skipped or failed: %s", exc)
+
+    # 3. Seed demo accounts and jobs
     try:
         from seed_data import seed
         seed()
@@ -71,15 +80,40 @@ def root():
 
 
 @app.get("/health", tags=["health"])
+@app.get("/api/v1/health", tags=["health"])
 def health():
-    return {"status": "healthy", "service": "Jobs Territory API"}
+    db_status = "ok"
+    try:
+        from sqlalchemy import text
+        from app.database import engine
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:
+        db_status = f"error: {str(exc)}"
+    return {
+        "status": "healthy" if db_status == "ok" else "degraded",
+        "service": "Jobs Territory API",
+        "database": db_status,
+    }
+
+
+@app.post("/api/v1/system/sync-db", tags=["system"])
+def sync_db_endpoint():
+    from app.database import engine, ensure_schema_sync, Base
+    import app.models  # noqa: F401
+    from seed_data import seed
+
+    ensure_schema_sync(engine)
+    Base.metadata.create_all(bind=engine)
+    seed()
+    return {"status": "success", "message": "Database schema synchronized and demo data seeded."}
 
 
 async def database_error_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
     logging.getLogger(__name__).error(
-        "Database request failed at %s (%s)", request.url.path, type(exc).__name__
+        "Database request failed at %s (%s): %s", request.url.path, type(exc).__name__, exc
     )
     return JSONResponse(
         status_code=503,
